@@ -278,13 +278,13 @@ unsafe_allow_html=True,
 uploaded = st.file_uploader("Choose a PDF", type="pdf", label_visibility="collapsed")
 Settings
 with st.expander("⚙️ Settings", expanded=False):
-col1, col2 = st.columns(2)
-with col1:
-model_id = st.selectbox("Model", MODELS, index=0)
-chunk_size = st.slider("Chunk size", 200, 800, 400, 50)
-with col2:
-top_k = st.slider("Top-k chunks", 2, 8, 4)
-overlap = st.slider("Overlap", 0, 150, 60, 10)
+    col1, col2 = st.columns(2)
+    with col1:
+        model_id = st.selectbox("Model", MODELS, index=0)
+        chunk_size = st.slider("Chunk size", 200, 800, 400, 50)
+    with col2:
+        top_k = st.slider("Top-k chunks", 2, 8, 4)
+        overlap = st.slider("Overlap", 0, 150, 60, 10)
 Index PDF
 if uploaded:
 is_new = uploaded.name != st.session_state.pdf_name

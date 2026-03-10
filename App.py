@@ -10,8 +10,8 @@ from bytez import Bytez
 st.set_page_config(
     page_title="DocChat",
     page_icon="✦",
-    layout="wide",
-    initial_sidebar_state="expanded",
+    layout="centered",
+    initial_sidebar_state="collapsed",
 )
 
 # ── API key from secrets ───────────────────────────────────────────────────────
@@ -33,10 +33,9 @@ MODELS = [
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
-/* ── Reset & Base ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body, .stApp {
     background: #0c0c0f !important;
@@ -44,358 +43,299 @@ html, body, .stApp {
     color: #e8e6e1;
 }
 
-/* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header { visibility: hidden; }
+
 .block-container {
-    padding: 0 !important;
-    max-width: 100% !important;
+    padding: 0 16px 120px 16px !important;
+    max-width: 780px !important;
 }
 
-/* ── Sidebar ── */
-[data-testid="stSidebar"] {
-    background: #111116 !important;
-    border-right: 1px solid #1e1e26 !important;
-    padding: 0 !important;
-}
-[data-testid="stSidebar"] > div:first-child {
-    padding: 28px 20px 20px 20px !important;
-}
-
-/* Sidebar labels */
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] .stSelectbox label,
-[data-testid="stSidebar"] .stSlider label {
-    color: #6b6b7e !important;
-    font-size: 0.7rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
-    text-transform: uppercase !important;
-    font-family: 'DM Sans', sans-serif !important;
-}
-
-/* Sidebar inputs */
-[data-testid="stSidebar"] .stTextInput input,
-[data-testid="stSidebar"] .stSelectbox > div > div {
-    background: #18181f !important;
-    border: 1px solid #2a2a36 !important;
-    border-radius: 10px !important;
-    color: #e8e6e1 !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 0.88rem !important;
-}
-[data-testid="stSidebar"] .stTextInput input:focus {
-    border-color: #5b5bd6 !important;
-    box-shadow: 0 0 0 3px rgba(91,91,214,0.15) !important;
-}
-
-/* Slider */
-[data-testid="stSidebar"] .stSlider [data-baseweb="slider"] {
-    margin-top: 6px !important;
-}
-[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"] {
-    color: #9898d8 !important;
-    font-size: 0.75rem !important;
-}
-
-/* File uploader */
-[data-testid="stSidebar"] [data-testid="stFileUploader"] {
-    background: #18181f !important;
-    border: 1.5px dashed #2a2a36 !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
-    transition: border-color 0.2s;
-}
-[data-testid="stSidebar"] [data-testid="stFileUploader"]:hover {
-    border-color: #5b5bd6 !important;
-}
-
-/* Sidebar button */
-[data-testid="stSidebar"] .stButton button {
-    background: #18181f !important;
-    border: 1px solid #2a2a36 !important;
-    border-radius: 10px !important;
-    color: #9898d8 !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 0.82rem !important;
-    font-weight: 500 !important;
-    width: 100% !important;
-    padding: 8px 0 !important;
-    transition: all 0.15s !important;
-}
-[data-testid="stSidebar"] .stButton button:hover {
-    background: #22222e !important;
-    border-color: #5b5bd6 !important;
-    color: #c4c4f0 !important;
-}
-
-/* ── Main area ── */
-.main-wrap {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    padding: 0;
-    overflow: hidden;
-}
-
-/* Header */
-.app-header {
-    padding: 22px 36px 18px 36px;
-    border-bottom: 1px solid #1a1a22;
+/* ── Top navbar ── */
+.navbar {
     display: flex;
     align-items: center;
-    gap: 14px;
-    flex-shrink: 0;
+    justify-content: space-between;
+    padding: 18px 0 14px 0;
+    border-bottom: 1px solid #1a1a24;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
     background: #0c0c0f;
+    z-index: 100;
 }
-.app-logo {
-    width: 36px;
-    height: 36px;
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.nav-logo {
+    width: 34px; height: 34px;
     background: linear-gradient(135deg, #5b5bd6, #9898d8);
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; color: white; font-weight: 700;
     flex-shrink: 0;
 }
-.app-title {
+.nav-title {
     font-family: 'Instrument Serif', serif;
-    font-size: 1.45rem;
+    font-size: 1.3rem;
     color: #e8e6e1;
     letter-spacing: -0.02em;
 }
-.app-doc-badge {
-    margin-left: auto;
-    background: #18181f;
-    border: 1px solid #2a2a36;
+.nav-doc {
+    background: #16161e;
+    border: 1px solid #22222e;
     border-radius: 20px;
-    padding: 5px 14px;
-    font-size: 0.75rem;
-    color: #9898d8;
-    font-weight: 500;
-    max-width: 260px;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+    color: #7878c8;
+    max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* Chat container */
-.chat-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 28px 36px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    scrollbar-width: thin;
-    scrollbar-color: #2a2a36 transparent;
+/* ── Upload card ── */
+.upload-card {
+    background: #13131a;
+    border: 1.5px dashed #2a2a3e;
+    border-radius: 18px;
+    padding: 28px 20px;
+    margin-bottom: 20px;
+    transition: border-color 0.2s;
 }
-.chat-scroll::-webkit-scrollbar { width: 4px; }
-.chat-scroll::-webkit-scrollbar-thumb { background: #2a2a36; border-radius: 4px; }
+.upload-card:hover { border-color: #5b5bd6; }
+.upload-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #5b5b72;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+}
 
-/* Message rows */
+/* ── Settings row ── */
+.settings-card {
+    background: #10101a;
+    border: 1px solid #1e1e2c;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.settings-title {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #4a4a62;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+}
+
+/* ── Stat pills ── */
+.stat-row {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0;
+}
+.stat-box {
+    flex: 1;
+    background: #16161e;
+    border: 1px solid #22222e;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+}
+.stat-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.3rem;
+    color: #9898d8;
+}
+.stat-lbl {
+    font-size: 0.62rem;
+    color: #44445a;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ── Chat messages ── */
 .msg-row {
     display: flex;
-    gap: 12px;
-    animation: fadeUp 0.3s ease;
+    gap: 10px;
+    margin-bottom: 16px;
+    animation: fadeUp 0.25s ease;
 }
-.msg-row.user { flex-direction: row-reverse; }
+.msg-row.user-row { flex-direction: row-reverse; }
 
 @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Avatars */
 .avatar {
-    width: 32px;
-    height: 32px;
+    width: 30px; height: 30px;
     border-radius: 50%;
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.78rem;
-    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700;
     margin-top: 2px;
 }
-.avatar.ai  { background: linear-gradient(135deg,#5b5bd6,#9898d8); color:#fff; }
-.avatar.usr { background: #22222e; border: 1px solid #2a2a36; color: #9898d8; }
+.avatar.ai-av  { background: linear-gradient(135deg,#5b5bd6,#9898d8); color:#fff; }
+.avatar.usr-av { background: #1e1e2c; border:1px solid #2a2a3e; color:#7878c8; }
 
-/* Bubbles */
 .bubble {
-    max-width: min(560px, 72vw);
-    padding: 13px 18px;
-    border-radius: 16px;
-    font-size: 0.92rem;
+    max-width: min(520px, 78vw);
+    padding: 12px 16px;
+    font-size: 0.91rem;
     line-height: 1.65;
     word-break: break-word;
 }
-.bubble.ai {
-    background: #16161e;
-    border: 1px solid #22222e;
-    color: #dddad4;
+.bubble.ai-bub {
+    background: #14141e;
+    border: 1px solid #20202e;
+    color: #d8d5d0;
     border-radius: 4px 16px 16px 16px;
 }
-.bubble.user {
-    background: linear-gradient(135deg, #5b5bd6, #7b7be8);
-    color: #ffffff;
+.bubble.usr-bub {
+    background: linear-gradient(135deg, #5b5bd6, #7575e0);
+    color: #fff;
     border-radius: 16px 4px 16px 16px;
 }
-
-/* Source pills inside AI bubble */
-.source-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #2a2a36;
+.src-row {
+    display: flex; flex-wrap: wrap; gap: 5px;
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid #252535;
 }
 .src-pill {
-    background: #1e1e2a;
-    border: 1px solid #2e2e40;
-    border-radius: 20px;
-    padding: 2px 10px;
-    font-size: 0.7rem;
-    color: #7878c8;
-    font-weight: 500;
+    background: #1c1c2a; border: 1px solid #2c2c40;
+    border-radius: 20px; padding: 2px 9px;
+    font-size: 0.68rem; color: #7070b8; font-weight: 500;
 }
 
-/* Empty states */
+/* ── Empty state ── */
 .empty-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 40px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 48px 20px; gap: 10px; text-align: center;
 }
-.empty-icon {
-    font-size: 2.8rem;
-    opacity: 0.25;
-}
+.empty-icon { font-size: 2.6rem; opacity: 0.3; }
 .empty-title {
     font-family: 'Instrument Serif', serif;
-    font-size: 1.5rem;
-    color: #3a3a4a;
-    text-align: center;
+    font-size: 1.4rem; color: #35354a;
 }
-.empty-sub {
-    font-size: 0.85rem;
-    color: #2e2e3e;
-    text-align: center;
-}
-
-/* Suggestion chips */
+.empty-sub { font-size: 0.82rem; color: #2e2e40; }
 .chips-wrap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 16px;
+    display: flex; flex-wrap: wrap;
+    gap: 8px; justify-content: center; margin-top: 14px;
 }
 .chip {
-    background: #16161e;
-    border: 1px solid #22222e;
-    border-radius: 20px;
-    padding: 7px 16px;
-    font-size: 0.8rem;
-    color: #6b6b7e;
-    cursor: pointer;
-    transition: all 0.15s;
+    background: #14141e; border: 1px solid #22222e;
+    border-radius: 20px; padding: 7px 15px;
+    font-size: 0.78rem; color: #5a5a72;
 }
-.chip:hover { border-color: #5b5bd6; color: #9898d8; }
 
-/* Input bar */
-.input-bar {
-    padding: 16px 36px 20px 36px;
-    border-top: 1px solid #1a1a22;
-    background: #0c0c0f;
-    flex-shrink: 0;
+/* ── Fixed input bar at bottom ── */
+.input-bar-wrap {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 780px;
+    padding: 12px 16px 18px 16px;
+    background: linear-gradient(to top, #0c0c0f 80%, transparent);
+    z-index: 200;
 }
-.input-bar .stTextInput input {
-    background: #14141c !important;
-    border: 1.5px solid #22222e !important;
+
+/* Override Streamlit input inside fixed bar */
+.input-bar-wrap .stTextInput input {
+    background: #14141e !important;
+    border: 1.5px solid #24243a !important;
     border-radius: 14px !important;
     color: #e8e6e1 !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 0.92rem !important;
-    padding: 12px 18px !important;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    padding: 13px 18px !important;
 }
-.input-bar .stTextInput input:focus {
+.input-bar-wrap .stTextInput input:focus {
     border-color: #5b5bd6 !important;
-    box-shadow: 0 0 0 3px rgba(91,91,214,0.12) !important;
+    box-shadow: 0 0 0 3px rgba(91,91,214,0.15) !important;
+    outline: none !important;
 }
-.input-bar .stButton button {
-    background: linear-gradient(135deg,#5b5bd6,#7b7be8) !important;
+.input-bar-wrap .stButton button {
+    background: linear-gradient(135deg, #5b5bd6, #7575e0) !important;
     border: none !important;
     border-radius: 14px !important;
     color: #fff !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 0.92rem !important;
     font-weight: 600 !important;
-    height: 46px !important;
+    height: 50px !important;
     width: 100% !important;
-    transition: opacity 0.15s !important;
-}
-.input-bar .stButton button:hover { opacity: 0.88 !important; }
-
-/* Dividers in sidebar */
-.side-divider {
-    border: none;
-    border-top: 1px solid #1e1e26;
-    margin: 18px 0;
 }
 
-/* Stat row */
-.stat-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 8px;
+/* Global input/select overrides */
+.stTextInput input, .stSelectbox > div > div {
+    background: #14141e !important;
+    border: 1px solid #22222e !important;
+    border-radius: 10px !important;
+    color: #e8e6e1 !important;
+    font-family: 'DM Sans', sans-serif !important;
 }
-.stat-box {
-    flex: 1;
-    min-width: 70px;
-    background: #18181f;
-    border: 1px solid #22222e;
-    border-radius: 10px;
-    padding: 8px 10px;
-    text-align: center;
+.stTextInput input:focus {
+    border-color: #5b5bd6 !important;
+    box-shadow: 0 0 0 3px rgba(91,91,214,0.12) !important;
 }
-.stat-num {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #9898d8;
-    font-family: 'Instrument Serif', serif;
+label {
+    color: #5a5a72 !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
 }
-.stat-lbl {
-    font-size: 0.65rem;
-    color: #4a4a5e;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    margin-top: 2px;
+.stButton button {
+    background: #16161e !important;
+    border: 1px solid #24243a !important;
+    border-radius: 10px !important;
+    color: #8888c8 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    transition: all 0.15s !important;
+}
+.stButton button:hover {
+    border-color: #5b5bd6 !important;
+    color: #c0c0f0 !important;
 }
 
-/* Responsive: mobile */
-@media (max-width: 768px) {
-    .app-header { padding: 14px 16px; }
-    .app-title { font-size: 1.15rem; }
-    .app-doc-badge { display: none; }
-    .chat-scroll { padding: 16px; gap: 14px; }
-    .bubble { max-width: 88vw; font-size: 0.88rem; }
-    .input-bar { padding: 12px 14px 16px 14px; }
-    .avatar { width: 26px; height: 26px; font-size: 0.65rem; }
+/* Key status banner */
+.key-ok {
+    background: #0d1f0d; border: 1px solid #1e3a1e;
+    border-radius: 10px; padding: 8px 14px;
+    font-size: 0.78rem; color: #4caf50; margin-bottom: 16px;
 }
+.key-warn {
+    background: #1c1010; border: 1px solid #3a1e1e;
+    border-radius: 10px; padding: 8px 14px;
+    font-size: 0.78rem; color: #e57373; margin-bottom: 8px;
+}
+
+/* Divider */
+.div-line {
+    border: none; border-top: 1px solid #1a1a24; margin: 18px 0;
+}
+
+/* Slider thumb color */
+[data-testid="stSlider"] [data-testid="stThumbValue"] {
+    color: #9898d8 !important;
+}
+
+/* Collapse sidebar toggle on mobile */
+[data-testid="collapsedControl"] { display: none !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: #22222e; border-radius: 3px; }
 </style>
 """, unsafe_allow_html=True)
 
 # ── PDF & Retrieval helpers ───────────────────────────────────────────────────
-
 def extract_text(file_bytes: bytes) -> list[dict]:
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
         tmp.write(file_bytes)
@@ -456,9 +396,7 @@ def retrieve(query, chunks, vecs, vec_fn, k=4):
     return [chunks[i] for i, _ in scored[:k]]
 
 def clean_output(raw) -> str:
-    """Extract clean string from any Bytez output shape."""
     if isinstance(raw, str):
-        # Strip dict-like wrappers if model leaked them
         raw = raw.strip()
         m = re.search(r"'content':\s*'(.*?)'(?:\s*\}|$)", raw, re.DOTALL)
         if m: return m.group(1).replace("\\n", "\n")
@@ -472,7 +410,6 @@ def clean_output(raw) -> str:
                     return item["message"]["content"]
                 if "generated_text" in item:
                     txt = item["generated_text"]
-                    # Strip system/user prompt leakage
                     if "assistant" in txt.lower():
                         parts = re.split(r'(?i)assistant\s*[:\n]', txt)
                         if len(parts) > 1:
@@ -494,7 +431,6 @@ def ask(question, context_chunks, history, api_key, model_id):
     for m in history[-6:]:
         messages.append({"role": m["role"], "content": m["content"]})
     messages.append({"role": "user", "content": question})
-
     sdk = Bytez(api_key)
     model = sdk.model(model_id)
     result = model.run(messages)
@@ -502,203 +438,52 @@ def ask(question, context_chunks, history, api_key, model_id):
         raise RuntimeError(result.error)
     return clean_output(result.output)
 
-def make_suggestions(pdf_name: str) -> list[str]:
-    return [
-        "What is this document about?",
-        "Summarize the key points",
-        "What are the main conclusions?",
-        "List the important terms",
-    ]
-
 # ── Session state ─────────────────────────────────────────────────────────────
 for k, v in [("chunks",[]),("vecs",[]),("vec_fn",None),("history",[]),
-              ("pdf_name",None),("last_src",[]),("page_count",0)]:
+              ("pdf_name",None),("last_src",[]),("page_count",0),
+              ("show_settings", False)]:
     if k not in st.session_state: st.session_state[k] = v
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown(
-        "<div style='font-family:Instrument Serif,serif;font-size:1.3rem;"
-        "color:#e8e6e1;margin-bottom:4px'>✦ DocChat</div>"
-        "<div style='font-size:0.72rem;color:#3a3a4e;margin-bottom:20px'>"
-        "PDF Retrieval-Augmented Generation</div>",
-        unsafe_allow_html=True,
-    )
+# ── Resolve API key ───────────────────────────────────────────────────────────
+secret_key = get_api_key()
 
-    # API key
-    secret_key = get_api_key()
-    if secret_key:
-        api_key = secret_key
-        st.markdown(
-            "<div style='background:#0f1f0f;border:1px solid #1e3a1e;border-radius:8px;"
-            "padding:7px 12px;font-size:0.75rem;color:#4caf50;margin-bottom:14px'>"
-            "🔒 API key loaded from Secrets</div>",
-            unsafe_allow_html=True,
-        )
-    else:
-        api_key = st.text_input("Bytez API Key", type="password", placeholder="paste key…")
-        with st.expander("How to add as Secret"):
-            st.markdown("""
-**Streamlit Cloud** → Settings → Secrets:
-```toml
-BYTEZ_API_KEY = "your-key"
-```
-**HF Spaces** → Settings → Variables & Secrets
-            """)
-
-    st.markdown("<hr class='side-divider'>", unsafe_allow_html=True)
-
-    model_id = st.selectbox("Model", MODELS, index=0, label_visibility="visible")
-    c1, c2 = st.columns(2)
-    with c1: chunk_size = st.slider("Chunk size", 200, 800, 400, 50)
-    with c2: top_k = st.slider("Top-k", 2, 8, 4)
-    overlap = st.slider("Overlap", 0, 150, 60, 10)
-
-    st.markdown("<hr class='side-divider'>", unsafe_allow_html=True)
-    st.markdown(
-        "<div style='font-size:0.7rem;color:#6b6b7e;font-weight:600;"
-        "letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px'>"
-        "Upload PDF</div>",
-        unsafe_allow_html=True,
-    )
-    uploaded = st.file_uploader("", type="pdf", label_visibility="collapsed")
-
-    if uploaded:
-        is_new = uploaded.name != st.session_state.pdf_name
-        if is_new or st.button("↺ Re-index"):
-            with st.spinner("Indexing…"):
-                try:
-                    pages = extract_text(uploaded.read())
-                    chunks = chunk_pages(pages, chunk_size, overlap)
-                    vocab, idf, vecs, vec_fn = build_index(chunks)
-                    st.session_state.update({
-                        "chunks": chunks, "vecs": vecs, "vec_fn": vec_fn,
-                        "pdf_name": uploaded.name, "history": [],
-                        "last_src": [], "page_count": len(pages),
-                    })
-                    st.success(f"✓ Ready")
-                except Exception as e:
-                    st.error(str(e))
-
-    if st.session_state.chunks:
-        st.markdown(
-            f"<div class='stat-row'>"
-            f"<div class='stat-box'><div class='stat-num'>{st.session_state.page_count}</div>"
-            f"<div class='stat-lbl'>Pages</div></div>"
-            f"<div class='stat-box'><div class='stat-num'>{len(st.session_state.chunks)}</div>"
-            f"<div class='stat-lbl'>Chunks</div></div>"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-    if st.session_state.history:
-        st.markdown("<hr class='side-divider'>", unsafe_allow_html=True)
-        if st.button("🗑 Clear chat"):
-            st.session_state.history = []
-            st.session_state.last_src = []
-            st.rerun()
-
-# ── Main layout ───────────────────────────────────────────────────────────────
+# ── NAVBAR ────────────────────────────────────────────────────────────────────
 doc_badge = (
-    f"<span class='app-doc-badge'>📄 {st.session_state.pdf_name}</span>"
+    f"<span class='nav-doc'>📄 {st.session_state.pdf_name[:28]}…"
+    if st.session_state.pdf_name and len(st.session_state.pdf_name) > 28
+    else f"<span class='nav-doc'>📄 {st.session_state.pdf_name}</span>"
     if st.session_state.pdf_name else ""
 )
 st.markdown(
-    f"<div class='app-header'>"
-    f"<div class='app-logo'>✦</div>"
-    f"<span class='app-title'>DocChat</span>"
-    f"{doc_badge}"
+    f"<div class='navbar'>"
+    f"  <div class='nav-brand'>"
+    f"    <div class='nav-logo'>✦</div>"
+    f"    <span class='nav-title'>DocChat</span>"
+    f"  </div>"
+    f"  {doc_badge}"
     f"</div>",
     unsafe_allow_html=True,
 )
 
-# Chat area
-if not api_key:
+# ── API KEY SECTION ───────────────────────────────────────────────────────────
+if secret_key:
+    api_key = secret_key
     st.markdown(
-        "<div class='empty-wrap'>"
-        "<div class='empty-icon'>🔑</div>"
-        "<div class='empty-title'>Add your Bytez API key</div>"
-        "<div class='empty-sub'>Paste it in the sidebar or add it as a Secret</div>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-elif not st.session_state.chunks:
-    st.markdown(
-        "<div class='empty-wrap'>"
-        "<div class='empty-icon'>📄</div>"
-        "<div class='empty-title'>Upload a PDF to begin</div>"
-        "<div class='empty-sub'>Drag & drop your document in the sidebar</div>"
-        "</div>",
+        "<div class='key-ok'>🔒 API key loaded from Secrets</div>",
         unsafe_allow_html=True,
     )
 else:
-    # Render messages
-    if not st.session_state.history:
-        suggestions = make_suggestions(st.session_state.pdf_name)
-        chips_html = "".join(f"<div class='chip'>{s}</div>" for s in suggestions)
-        st.markdown(
-            "<div class='empty-wrap'>"
-            "<div class='empty-icon'>💬</div>"
-            f"<div class='empty-title'>Ask about {st.session_state.pdf_name[:40]}</div>"
-            "<div class='empty-sub'>Try one of these or type your own question</div>"
-            f"<div class='chips-wrap'>{chips_html}</div>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
-    else:
-        chat_html = ""
-        for i, msg in enumerate(st.session_state.history):
-            is_user = msg["role"] == "user"
-            avatar = (
-                "<div class='avatar usr'>You</div>"
-                if is_user else
-                "<div class='avatar ai'>✦</div>"
-            )
-            bubble_class = "user" if is_user else "ai"
-            row_class = "user" if is_user else "ai"
-            content = msg["content"].replace("\n", "<br>")
-
-            sources_html = ""
-            if not is_user and i == len(st.session_state.history) - 1 and st.session_state.last_src:
-                pages = sorted(set(c["page"] for c in st.session_state.last_src))
-                pills = "".join(f"<span class='src-pill'>Page {p}</span>" for p in pages)
-                sources_html = f"<div class='source-row'>{pills}</div>"
-
-            chat_html += (
-                f"<div class='msg-row {row_class}'>"
-                f"{avatar}"
-                f"<div class='bubble {bubble_class}'>{content}{sources_html}</div>"
-                f"</div>"
-            )
-
-        st.markdown(
-            f"<div class='chat-scroll'>{chat_html}</div>",
-            unsafe_allow_html=True,
-        )
-
-    # Input bar
-    st.markdown("<div class='input-bar'>", unsafe_allow_html=True)
-    col_inp, col_btn = st.columns([6, 1])
-    with col_inp:
-        user_input = st.text_input(
-            "", placeholder="Ask anything about your document…",
-            label_visibility="collapsed", key="inp"
-        )
-    with col_btn:
-        send = st.button("Send", use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if send and user_input.strip():
-        q = user_input.strip()
-        st.session_state.history.append({"role": "user", "content": q})
-        with st.spinner(""):
-            try:
-                srcs = retrieve(q, st.session_state.chunks, st.session_state.vecs,
-                                st.session_state.vec_fn, top_k)
-                ans = ask(q, srcs, st.session_state.history[:-1], api_key, model_id)
-                st.session_state.history.append({"role": "assistant", "content": ans})
-                st.session_state.last_src = srcs
-            except Exception as e:
-                st.session_state.history.append({"role": "assistant", "content": f"Error: {e}"})
-                st.session_state.last_src = []
-        st.rerun()
+    st.markdown(
+        "<div class='key-warn'>⚠️ No secret found. Enter your Bytez API key below.</div>",
+        unsafe_allow_html=True,
+    )
+    api_key = st.text_input(
+        "Bytez API Key", type="password",
+        placeholder="Paste your Bytez API key…",
+    )
+    with st.expander("💡 How to add as a permanent Secret"):
+        st.markdown("""
+**Streamlit Community Cloud** → App Settings → Secrets:
+```toml
+BYTEZ_API_KEY = "your-key-here"
+        

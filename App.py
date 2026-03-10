@@ -2,9 +2,9 @@ import streamlit as st
 import os
 import tempfile
 import math
-import re
 from pypdf import PdfReader
 from bytez import Bytez
+from docx import Document
 
 st.set_page_config(
     page_title="DocChat",
@@ -21,16 +21,14 @@ def get_api_key():
 
 MODELS = [
     "openai/gpt-4o",
-    "openai/gpt-4o-mini",
-    "anthropic/claude-3-5-sonnet-20241022",
-    "anthropic/claude-3-haiku-20240307",
-    "meta-llama/Llama-3.1-8B-Instruct",
-    "mistralai/Mistral-7B-Instruct-v0.3",
+    "openai/gpt-4o-mini"
 ]
 
 
-def extract_text(file_bytes):
-    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+# -------- PDF Extraction --------
+def extract_pdf(file_bytes):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         tmp.write(file_bytes)
         path = tmp.name
 
@@ -40,6 +38,7 @@ def extract_text(file_bytes):
         reader = PdfReader(path)
 
         for i, page in enumerate(reader.pages):
+
             text = page.extract_text() or ""
 
             if text.strip():
@@ -54,6 +53,38 @@ def extract_text(file_bytes):
         os.unlink(path)
 
 
+# -------- DOCX Extraction --------
+def extract_docx(file_bytes):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+        tmp.write(file_bytes)
+        path = tmp.name
+
+    pages = []
+
+    try:
+        doc = Document(path)
+
+        full_text = []
+
+        for para in doc.paragraphs:
+            if para.text.strip():
+                full_text.append(para.text)
+
+        text = "\n".join(full_text)
+
+        pages.append({
+            "page": 1,
+            "text": text
+        })
+
+        return pages
+
+    finally:
+        os.unlink(path)
+
+
+# -------- Chunking --------
 def chunk_pages(pages, size=400, overlap=60):
 
     chunks = []
@@ -82,6 +113,7 @@ def chunk_pages(pages, size=400, overlap=60):
     return chunks
 
 
+# -------- Vector Index --------
 def build_index(chunks):
 
     vocab = {}
@@ -130,9 +162,10 @@ def build_index(chunks):
     return vocab, idf, vecs, vec
 
 
+# -------- Similarity --------
 def cosine(a, b):
 
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x*y for x, y in zip(a, b))
 
     norm_a = sum(x**2 for x in a) ** 0.5
     norm_b = sum(x**2 for x in b) ** 0.5
@@ -140,6 +173,7 @@ def cosine(a, b):
     return dot / (norm_a * norm_b + 1e-9)
 
 
+# -------- Retrieval --------
 def retrieve(query, chunks, vecs, vec_fn, k=4):
 
     qv = vec_fn(query)
@@ -153,45 +187,17 @@ def retrieve(query, chunks, vecs, vec_fn, k=4):
     return [chunks[i] for i, _ in scored[:k]]
 
 
-def clean_output(raw):
-
-    if isinstance(raw, str):
-        raw = raw.strip()
-        return raw
-
-    if isinstance(raw, dict):
-
-        if "content" in raw:
-            return raw["content"]
-
-        if "generated_text" in raw:
-            return raw["generated_text"]
-
-    if isinstance(raw, list):
-
-        for item in raw:
-
-            if isinstance(item, dict):
-
-                if "message" in item:
-                    return item["message"]["content"]
-
-                if "generated_text" in item:
-                    return item["generated_text"]
-
-    return str(raw)
-
-
+# -------- Model Call --------
 def ask(question, context_chunks, history, api_key, model_id):
 
     context = "\n\n".join(
-        f"[Page {c['page']}]: {c['text']}" for c in context_chunks
+        f"[Page {c['page']}]: {c['text']}"
+        for c in context_chunks
     )
 
     system = (
-        "Answer ONLY using the provided document context. "
-        "If the answer is not in the document say you do not know.\n\n"
-        "DOCUMENT:\n" + context
+        "Answer ONLY from the document context.\n\n"
+        "Document:\n" + context
     )
 
     messages = [{"role": "system", "content": system}]
@@ -199,7 +205,10 @@ def ask(question, context_chunks, history, api_key, model_id):
     for m in history[-6:]:
         messages.append(m)
 
-    messages.append({"role": "user", "content": question})
+    messages.append({
+        "role": "user",
+        "content": question
+    })
 
     sdk = Bytez(api_key)
 
@@ -210,11 +219,10 @@ def ask(question, context_chunks, history, api_key, model_id):
     if result.error:
         raise RuntimeError(result.error)
 
-    return clean_output(result.output)
+    return result.output
 
 
-# Session State Initialization
-
+# -------- Session --------
 if "chunks" not in st.session_state:
     st.session_state.chunks = []
 
@@ -230,15 +238,8 @@ if "history" not in st.session_state:
 if "pdf_name" not in st.session_state:
     st.session_state.pdf_name = None
 
-if "last_src" not in st.session_state:
-    st.session_state.last_src = []
-
-
-# Title
 
 st.title("DocChat")
-
-# API key
 
 secret_key = get_api_key()
 
@@ -248,9 +249,11 @@ else:
     api_key = st.text_input("Bytez API Key", type="password")
 
 
-# Upload
+uploaded = st.file_uploader(
+    "Upload Document",
+    type=["pdf", "docx"]
+)
 
-uploaded = st.file_uploader("Upload PDF", type="pdf")
 
 with st.expander("Settings"):
 
@@ -263,6 +266,7 @@ with st.expander("Settings"):
     top_k = st.slider("Top K", 2, 8, 4)
 
 
+# -------- Index Document --------
 if uploaded:
 
     is_new = uploaded.name != st.session_state.pdf_name
@@ -271,7 +275,13 @@ if uploaded:
 
         with st.spinner("Indexing document..."):
 
-            pages = extract_text(uploaded.read())
+            file_bytes = uploaded.read()
+
+            if uploaded.name.endswith(".pdf"):
+                pages = extract_pdf(file_bytes)
+
+            elif uploaded.name.endswith(".docx"):
+                pages = extract_docx(file_bytes)
 
             chunks = chunk_pages(pages, chunk_size, overlap)
 
@@ -286,8 +296,7 @@ if uploaded:
         st.success("Document indexed")
 
 
-# Chat UI
-
+# -------- Chat --------
 if st.session_state.chunks:
 
     for msg in st.session_state.history:
@@ -298,7 +307,7 @@ if st.session_state.chunks:
             st.chat_message("assistant").write(msg["content"])
 
 
-    prompt = st.chat_input("Ask about your document")
+    prompt = st.chat_input("Ask about the document")
 
     if prompt:
 

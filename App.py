@@ -2,15 +2,20 @@ import streamlit as st
 import os
 import tempfile
 import math
+import json
 from pypdf import PdfReader
 from docx import Document
 from bytez import Bytez
 
 
-st.set_page_config(page_title="DocChat", page_icon="📄", layout="centered")
+st.set_page_config(
+    page_title="DocChat",
+    page_icon="📄",
+    layout="centered"
+)
 
 
-# ---------- API KEY ----------
+# ---------------- API KEY ----------------
 def get_api_key():
     try:
         return st.secrets["BYTEZ_API_KEY"]
@@ -18,7 +23,7 @@ def get_api_key():
         return None
 
 
-# ---------- MODELS ----------
+# ---------------- MODELS ----------------
 MODELS = [
     "openai/gpt-4o",
     "openai/gpt-4o-mini",
@@ -29,7 +34,50 @@ MODELS = [
 ]
 
 
-# ---------- PDF TEXT ----------
+# ---------------- CLEAN OUTPUT ----------------
+def clean_output(raw):
+
+    if isinstance(raw, str):
+
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict) and "content" in parsed:
+                return parsed["content"]
+        except Exception:
+            pass
+
+        if "'content':" in raw:
+            try:
+                return raw.split("'content':")[1].split("'}")[0].strip(" '")
+            except Exception:
+                pass
+
+        return raw
+
+    if isinstance(raw, dict):
+
+        if "content" in raw:
+            return raw["content"]
+
+        if "generated_text" in raw:
+            return raw["generated_text"]
+
+    if isinstance(raw, list):
+
+        for item in raw:
+
+            if isinstance(item, dict):
+
+                if "message" in item:
+                    return item["message"]["content"]
+
+                if "generated_text" in item:
+                    return item["generated_text"]
+
+    return str(raw)
+
+
+# ---------------- PDF EXTRACTION ----------------
 def extract_pdf(file_bytes):
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
@@ -39,6 +87,7 @@ def extract_pdf(file_bytes):
     pages = []
 
     try:
+
         reader = PdfReader(path)
 
         for i, page in enumerate(reader.pages):
@@ -46,9 +95,11 @@ def extract_pdf(file_bytes):
             text = page.extract_text() or ""
 
             if text.strip():
-                pages.append(
-                    {"page": i + 1, "text": text.strip()}
-                )
+
+                pages.append({
+                    "page": i + 1,
+                    "text": text.strip()
+                })
 
         return pages
 
@@ -56,7 +107,7 @@ def extract_pdf(file_bytes):
         os.unlink(path)
 
 
-# ---------- DOCX TEXT ----------
+# ---------------- DOCX EXTRACTION ----------------
 def extract_docx(file_bytes):
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
@@ -73,7 +124,10 @@ def extract_docx(file_bytes):
             p.text for p in doc.paragraphs if p.text.strip()
         )
 
-        pages.append({"page": 1, "text": text})
+        pages.append({
+            "page": 1,
+            "text": text
+        })
 
         return pages
 
@@ -81,7 +135,7 @@ def extract_docx(file_bytes):
         os.unlink(path)
 
 
-# ---------- CHUNK ----------
+# ---------------- CHUNKING ----------------
 def chunk_pages(pages, size=400, overlap=60):
 
     chunks = []
@@ -96,13 +150,11 @@ def chunk_pages(pages, size=400, overlap=60):
 
             end = min(start + size, len(words))
 
-            chunks.append(
-                {
-                    "text": " ".join(words[start:end]),
-                    "page": p["page"],
-                    "id": len(chunks),
-                }
-            )
+            chunks.append({
+                "text": " ".join(words[start:end]),
+                "page": p["page"],
+                "id": len(chunks)
+            })
 
             if end == len(words):
                 break
@@ -112,12 +164,13 @@ def chunk_pages(pages, size=400, overlap=60):
     return chunks
 
 
-# ---------- TFIDF INDEX ----------
+# ---------------- VECTOR INDEX ----------------
 def build_index(chunks):
 
     vocab = {}
 
     for c in chunks:
+
         for w in c["text"].lower().split():
 
             if w not in vocab:
@@ -161,10 +214,10 @@ def build_index(chunks):
     return vocab, vecs, vec
 
 
-# ---------- COSINE ----------
+# ---------------- COSINE ----------------
 def cosine(a, b):
 
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x*y for x, y in zip(a, b))
 
     norm_a = sum(x**2 for x in a) ** 0.5
     norm_b = sum(x**2 for x in b) ** 0.5
@@ -172,7 +225,7 @@ def cosine(a, b):
     return dot / (norm_a * norm_b + 1e-9)
 
 
-# ---------- RETRIEVE ----------
+# ---------------- RETRIEVAL ----------------
 def retrieve(query, chunks, vecs, vec_fn, k=4):
 
     qv = vec_fn(query)
@@ -180,30 +233,31 @@ def retrieve(query, chunks, vecs, vec_fn, k=4):
     scored = sorted(
         enumerate(vecs),
         key=lambda x: cosine(qv, x[1]),
-        reverse=True,
+        reverse=True
     )
 
     return [chunks[i] for i, _ in scored[:k]]
 
 
-# ---------- MODEL CALL ----------
+# ---------------- MODEL CALL ----------------
 def ask(question, context_chunks, history, api_key, model_id):
 
     context = "\n\n".join(
-        f"[Page {c['page']}]\n{c['text']}"
+        f"(Page {c['page']}) {c['text']}"
         for c in context_chunks
     )
 
     system_prompt = f"""
-You are an expert document analysis assistant.
+You are a document analysis assistant.
 
-Rules:
-1. Answer ONLY using the document context.
-2. If the answer is not found, say "The document does not contain that information."
+Follow these rules strictly:
+
+1. Answer ONLY using the provided document context.
+2. If the answer is not in the document say:
+   "The document does not contain that information."
 3. Be concise and accurate.
-4. Cite page numbers like (Page 3).
-5. Do NOT invent information.
-6. Use bullet points when helpful.
+4. When possible cite page numbers like (Page 2).
+5. Use bullet points for lists.
 
 DOCUMENT CONTEXT:
 {context}
@@ -225,21 +279,16 @@ DOCUMENT CONTEXT:
         result = model.run(messages)
 
         if result.error:
-            return f"Model Error: {result.error}"
+            return f"Model error: {result.error}"
 
-        output = result.output
-
-        if isinstance(output, str):
-            return output
-
-        return str(output)
+        return clean_output(result.output)
 
     except Exception as e:
 
-        return f"API Error: {str(e)}"
+        return f"API error: {str(e)}"
 
 
-# ---------- SESSION ----------
+# ---------------- SESSION ----------------
 if "chunks" not in st.session_state:
     st.session_state.chunks = []
 
@@ -256,8 +305,9 @@ if "file_name" not in st.session_state:
     st.session_state.file_name = None
 
 
-# ---------- UI ----------
+# ---------------- UI ----------------
 st.title("📄 DocChat")
+
 
 secret_key = get_api_key()
 
@@ -269,7 +319,7 @@ else:
 
 uploaded = st.file_uploader(
     "Upload PDF or DOCX",
-    type=["pdf", "docx"],
+    type=["pdf", "docx"]
 )
 
 
@@ -284,7 +334,7 @@ with st.expander("Settings"):
     top_k = st.slider("Top Chunks", 2, 8, 4)
 
 
-# ---------- INDEX ----------
+# ---------------- INDEX ----------------
 if uploaded:
 
     is_new = uploaded.name != st.session_state.file_name
@@ -297,7 +347,6 @@ if uploaded:
 
             if uploaded.name.endswith(".pdf"):
                 pages = extract_pdf(file_bytes)
-
             else:
                 pages = extract_docx(file_bytes)
 
@@ -314,21 +363,22 @@ if uploaded:
         st.success("Document indexed")
 
 
-# ---------- CHAT ----------
+# ---------------- CHAT ----------------
 if st.session_state.chunks:
 
     for msg in st.session_state.history:
 
         with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+            st.markdown(msg["content"])
 
     prompt = st.chat_input("Ask about the document")
 
     if prompt:
 
-        st.session_state.history.append(
-            {"role": "user", "content": prompt}
-        )
+        st.session_state.history.append({
+            "role": "user",
+            "content": prompt
+        })
 
         with st.spinner("Thinking..."):
 
@@ -337,7 +387,7 @@ if st.session_state.chunks:
                 st.session_state.chunks,
                 st.session_state.vecs,
                 st.session_state.vec_fn,
-                top_k,
+                top_k
             )
 
             answer = ask(
@@ -345,11 +395,12 @@ if st.session_state.chunks:
                 srcs,
                 st.session_state.history[:-1],
                 api_key,
-                model_id,
+                model_id
             )
 
-        st.session_state.history.append(
-            {"role": "assistant", "content": answer}
-        )
+        st.session_state.history.append({
+            "role": "assistant",
+            "content": answer
+        })
 
         st.rerun()

@@ -599,20 +599,18 @@ BYTEZ_API_KEY = "your-key"
             st.rerun()
 
 # ── Main layout ───────────────────────────────────────────────────────────────
-header_col, _ = st.columns([1, 0])
-with header_col:
-    doc_badge = (
-        f"<span class='app-doc-badge'>📄 {st.session_state.pdf_name}</span>"
-        if st.session_state.pdf_name else ""
-    )
-    st.markdown(
-        f"<div class='app-header'>"
-        f"<div class='app-logo'>✦</div>"
-        f"<span class='app-title'>DocChat</span>"
-        f"{doc_badge}"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
+doc_badge = (
+    f"<span class='app-doc-badge'>📄 {st.session_state.pdf_name}</span>"
+    if st.session_state.pdf_name else ""
+)
+st.markdown(
+    f"<div class='app-header'>"
+    f"<div class='app-logo'>✦</div>"
+    f"<span class='app-title'>DocChat</span>"
+    f"{doc_badge}"
+    f"</div>",
+    unsafe_allow_html=True,
+)
 
 # Chat area
 if not api_key:

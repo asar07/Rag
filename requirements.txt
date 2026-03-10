@@ -1,3 +1,4 @@
 streamlit>=1.32.0
 pypdf>=4.0.0
 bytez>=0.1.0
+python-docx
